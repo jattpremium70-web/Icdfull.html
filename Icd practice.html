@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ICD-10 Practice Assessment</title>
+    <style>
+        :root { --primary: #2e7d32; --secondary: #f4f4f9; --error: #d32f2f; --text: #333; --white: #ffffff; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--secondary); color: var(--text); padding: 20px; line-height: 1.6; }
+        .container { max-width: 900px; margin: 0 auto; background: var(--white); padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
+        .question-block { margin-bottom: 25px; padding: 15px; border-bottom: 1px solid #eee; }
+        .question-text { font-weight: 600; margin-bottom: 12px; }
+        .option { display: block; margin-bottom: 8px; cursor: pointer; padding: 8px; border-radius: 4px; transition: 0.2s; }
+        .option:hover { background: #f0f0f0; }
+        #result-area { display: none; margin-top: 30px; padding: 20px; background: #e8f5e9; border-radius: 8px; }
+        .wrong-answer-list { margin-top: 20px; padding: 15px; background: #fff; border-left: 5px solid var(--error); border-radius: 4px; }
+        .wrong-item { margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px dashed #ccc; }
+        .label-red { color: var(--error); font-weight: bold; }
+        .label-green { color: var(--primary); font-weight: bold; }
+        .btn-container { text-align: center; margin-top: 30px; }
+        button { padding: 12px 30px; font-size: 16px; border: none; border-radius: 5px; cursor: pointer; transition: 0.2s; }
+        #submit-btn { background-color: var(--primary); color: white; }
+        #retake-btn { background-color: #555; color: white; display: none; }
+        .score-box { font-size: 24px; font-weight: bold; text-align: center; margin: 15px 0; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>ICD-10 Full Practice Test</h1>
+    <form id="quiz-form"></form>
+    <div id="result-area">
+        <div class="score-box" id="final-score"></div>
+        <div id="stats" style="text-align: center;"></div>
+        <div id="wrong-answers-container" style="display:none;">
+            <h3>Review Wrong Answers:</h3>
+            <div id="wrong-list" class="wrong-answer-list"></div>
+        </div>
+    </div>
+    <div class="btn-container">
+        <button type="button" id="submit-btn" onclick="submitQuiz()">Submit Test</button>
+        <button type="button" id="retake-btn" onclick="resetQuiz()">Retake Test</button>
+    </div>
+</div>
+<script>
+    const questions = [
+        { q: "Admission for hemodialysis and acute renal failure.", options: ["Z49.31, N17.9", "Z49.31, N17.0", "Z49.31, N18.9", "N17.9, Z49.31"], answer: 0 },
+        { q: "52F, Glaucoma & peripheral angiopathy due to insulin-dependent Type 1 DM (uncontrolled).", options: ["E10.36, E10.51, H42, I70.209", "E11.36, E11.51, H42, I70.209", "E10.9, E10.51, I70.209", "E10.311, E10.51, I70.209"], answer: 0 },
+        { q: "Respiratory failure due to administering incorrect medication (Valium instead of Xanax).", options: ["T42.4X1A, J96.90", "J96.00, T42.4X1A", "T42.4X1A, J96.00", "T42.4X5D, J96.00"], answer: 2 },
+        { q: "Lethargic patient with vomiting/cramping ingested Tylenol w/ codeine and whiskey.", options: ["T39.1X1A, T40.2X1A, T51.0X1A, R53.82, R11.10", "T39.1X1A, T40.2X1A, T51.9X1A", "T40.2X1A, T39.1X1A, R53.82", "T39.1X4A, T40.2X4A, T51.0X4A"], answer: 0 },
+        { q: "Patient admitted with septicemia and SIRS, temp 38.5C, WBC 12,500, respiratory/hepatic failure.", options: ["A41.9, R65.21", "A41.9, J96.00, K72.90", "R65.20, A41.9", "A41.9, R65.20, J96.00, K72.90"], answer: 3 },
+        { q: "Cirrhosis of liver with hemorrhagic esophageal varices.", options: ["K74.60, I85.11", "I85.11, K74.60", "K74.69, I85.11", "K74.60, I85.01"], answer: 0 },
+        { q: "Bloody stool.", options: ["K92.2", "R19.5", "K92.1", "K62.5"], answer: 2 },
+        { q: "Infection from head laceration (5 weeks old) occurred during motor vehicle accident.", options: ["S01.00XA, L08.9", "L08.9, S01.00XD, V89.2XXD", "L08.9, V89.2XXA", "S01.00XD, V89.2XXD"], answer: 1 },
+        { q: "Newborn born hospital C-section; mother history of DM, cocaine abuse; ABO incompatibility.", options: ["Z38.00, P00.1, P04.41", "Z38.01, P00.1, P04.41, P55.1", "Z38.01, P70.1, P04.41", "P55.1, Z38.01"], answer: 1 },
+        { q: "Fluid overload, acute renal failure, Type 2 DM, sepsis, respiratory failure on ventilator.", options: ["A41.9, E11.9, J96.9", "A41.9, E11.9, J96.00, N17.9, R60.1, R91.8", "N17.9, A41.9, J96.00", "E11.9, A41.9, N17.9"], answer: 1 },
+        { q: "Glomerulonephritis due to infectious hepatitis.", options: ["B19.9, N08", "B15.9, N05.9", "N08, B15.9", "B15.9, N08"], answer: 3 },
+        { q: "Withdrawal symptoms from drug dependency on oxycodone (opioid).", options: ["F11.20", "F11.93", "F11.23", "F11.21"], answer: 2 },
+        { q: "Use both ___ and ___ when locating and assigning a diagnosis code.", options: ["Index and Appendix", "Code book and Dictionary", "Alphabetic Index and Tabular List", "Tabular List and Index to Procedures"], answer: 2 },
+        { q: "Patient with productive cough and shortness of breath; CXR indicates double pneumonia.", options: ["J18.9", "J18.1", "J12.9", "R05, R06.02"], answer: 0 },
+        { q: "72F, chest pain from anterior wall MI 12 weeks ago; poison ivy rash on leg.", options: ["I25.2, L23.7", "I21.09, L23.7", "I25.2, I20.9", "I22.0, L23.7"], answer: 0 },
+        { q: "Metastatic bone cancer (primary unknown) seen for chemo; canceled due to severe dehydration.", options: ["C79.51, C80.1", "E86.0, C79.51, C80.1", "Z51.11, E86.0", "C80.1, E86.0"], answer: 1 },
+        { q: "Aftercare for subtrochanteric fracture left femur; fell and fractured 2 weeks earlier.", options: ["Z47.89, S72.22XD, W19.XXXD", "S72.22XA, W19.XXXA", "Z47.89, S72.22XA", "Z48.03"], answer: 0 },
+        { q: "26F, cardiac arrest with administration of anesthetic during delivery.", options: ["O74.2", "O74.2, I46.8", "I46.9, O74.2", "O74.2, I46.2"], answer: 1 },
+        { q: "Sherri scheduled for chemo/radiation for cancer in situ of bladder wall.", options: ["Z51.11, Z51.0, C67.9", "Z51.11, Z51.0, D09.0", "D09.0, Z51.11", "Z51.11, D09.0"], answer: 1 },
+        { q: "Harry injured foot/ankle falling off curb; has stable HIV.", options: ["S93.409A, B20", "S93.409A, S93.609A, B20, W10.1XXA, Y92.511", "B20, S93.409A", "S93.409A, W10.1XXA"], answer: 1 },
+        { q: "Bradycardia due to Demerol (properly prescribed and administered).", options: ["T40.2X5A, R00.1", "R00.1, T40.2X1A", "R00.1, T40.2X5A", "T40.2X5D, R00.1"], answer: 2 },
+        { q: "Re-exploration laminectomy for presumed CSF leak; revealed no leak but a hematoma.", options: ["G96.0", "G97.81", "G97.82", "M96.830"], answer: 1 },
+        { q: "Healed kneecap fracture (6 months ago) with staggering gait; going to physical therapy.", options: ["S82.002S, R26.2", "R26.2, S82.002S", "R26.89, S82.002S", "Z47.89, R26.2"], answer: 1 },
+        { q: "Open wound of left hand.", options: ["S61.402A", "S61.401A", "S61.409A", "S61.002A"], answer: 0 },
+        { q: "What is used for skeletal traction is:", options: ["Wire and pin", "Screw", "Clamp", "All of the above"], answer: 3 },
+        { q: "Gastritis due to Ibuprofen (taken as prescribed for 2 weeks).", options: ["K29.70", "T39.315A", "K29.70, T39.311A", "K29.70, T39.315A"], answer: 3 },
+        { q: "Fracture of right patella with abrasion.", options: ["S82.001A, S80.211A", "S82.001A", "S80.211A, S82.001A", "S82.001B"], answer: 1 },
+        { q: "Gas gangrene and septic shock after a surgical procedure.", options: ["A48.0, R65.21", "T81.12XA, A48.0", "R65.21, A48.0", "A48.0, T81.12XA, R65.21"], answer: 3 },
+        { q: "20-week pregnancy, low weight gain, pre-existing essential hypertension.", options: ["O26.12, O10.012", "O26.12, O10.012, Z3A.20", "O10.012, O26.12", "O26.12, Z3A.20"], answer: 1 },
+        { q: "Congenital hypothyroidism with mild retardation.", options: ["E03.1, F70.0", "E03.1, F70", "F70, E03.1", "E00.9, F70"], answer: 1 },
+        { q: "Fall from chair at church; Colles fracture right wrist; contusions cheek, elbow, hand, thigh.", options: ["S52.531A, W07.XXXXA", "S52.531A, S00.83XA, S50.01XA, S60.221A, S70.12XA, W07.XXXXA, Y92.22", "S52.501A, W07.XXXXA", "W07.XXXXA, S52.531A"], answer: 1 },
+        { q: "Lacerated right thumb nail chopping vegetables in mobile home for food bank.", options: ["S61.111A, W26.0XXA", "S61.111A, W26.0XXA, Y92.020, Y93.G1, Y99.2", "S61.101A, Y92.020", "W26.0XXA, S61.111A"], answer: 1 },
+        { q: "Both acute and chronic condition with separate entries in index.", options: ["Code chronic only", "Code both, sequencing the chronic first", "Code both, sequencing the acute first", "Code acute only"], answer: 2 },
+        { q: "Pressure ulcers: bilateral buttock (R stage 3, L stage 2) and sacral area (stage 4).", options: ["L89.313, L89.322", "L89.313, L89.322, L89.154", "L89.154, L89.313", "L89.310, L89.320, L89.150"], answer: 1 },
+        { q: "3yo burned by hot soup; 18% 2nd deg (legs), 20% 3rd deg (chest/arms). TBSA 38%.", options: ["T24.209A, T22.30XA", "T21.31XA, T22.30XA, T24.209A", "T24.209A, T21.31XA, T22.30XA, T31.32", "T24.2, T21.3, T31.32"], answer: 2 },
+        { q: "STEMI converts to NSTEMI due to thrombolytic therapy.", options: ["As NSTEMI", "As both", "As a STEMI", "As unspecified MI"], answer: 2 },
+        { q: "Smoker's cough; abnormal CXR; 'rule out lung cancer'.", options: ["R05.3, F17.210, R91.8", "C34.90, F17.210", "R91.8, R05.3", "F17.210, R05.3"], answer: 0 },
+        { q: "Smoker diagnosed with CHF due to hypertension.", options: ["I10, I50.9", "I11.0, I50.9, F17.210", "I50.9, I11.0", "F17.210, I11.0"], answer: 1 },
+        { q: "Four-week-old female with obstructive apnea.", options: ["P28.3", "P28.42", "G47.33", "P28.4"], answer: 1 },
+        { q: "Fireman burns: 8% 3rd deg back, 2% 2nd deg neck, 4% 3rd deg forearm.", options: ["T21.31XA, T22.311A, T20.27XA, T31.11, X00.0XXA, Y92.019", "T21.31XA, T31.11", "T31.11, T21.31XA", "T21.31, T22.31, T20.27"], answer: 0 },
+        { q: "Hypertensive heart disease with congestive heart failure.", options: ["I11.0, I50.9", "I11.9, I50.9", "I13.0, I50.9", "I50.9, I11.0"], answer: 0 },
+        { q: "Newborn twins (27 weeks); extreme immaturity (850g and 900g).", options: ["P07.03, P07.26", "Z38.30, P07.03, P07.26", "P07.26, Z38.30", "Z38.31, P07.03"], answer: 1 },
+        { q: "Accelerated hypertension due to papillary muscle dysfunction.", options: ["I11.9", "I11.0", "I10", "I15.8"], answer: 0 },
+        { q: "Today cone biopsy for recurrence concerns of cervical adenocarcinoma.", options: ["C53.9, Z08", "Z85.41, C53.9", "Z08, Z85.41", "C53.9"], answer: 2 },
+        { q: "Recurrent right inguinal hernia with gangrene and obstruction.", options: ["K40.31", "K40.91", "K40.41", "K40.40"], answer: 2 },
+        { q: "Sarcoidosis with cardiomyopathy.", options: ["D86.9, I43", "D86.85, I43", "I43, D86.85", "D86.0"], answer: 1 },
+        { q: "Malignant melanoma (chest wall) metastatic to cervical lymph nodes.", options: ["C43.59, C77.0", "C77.0, C43.59", "C43.9, C77.0", "C77.0"], answer: 1 },
+        { q: "Firefighter burned; 30% TBSA (25% 3rd deg, 5% 1st/2nd deg upper limb).", options: ["T22.30XA, T31.32", "T31.32, T22.20XA", "T30.0, T31.32", "T31.22"], answer: 2 },
+        { q: "Type 1 DM, chronic L foot ulcer, peripheral angiopathy, stage 2 CKD.", options: ["E10.621, N18.2", "E10.51, E10.22, N18.2", "E10.621, L97.421, E10.51, E10.22, N18.2", "E10.621, E10.51, N18.2"], answer: 2 },
+        { q: "Type 2 DM, insulin user, mild retinopathy w/ macular edema, diabetic cataract.", options: ["E11.3211, E11.36", "E11.3211, Z79.4", "E11.3211, E11.36, Z79.4, E11.39", "E11.9, Z79.4"], answer: 2 },
+        { q: "Flat bridge of nose and reduced eyelid size vertically/horizontally.", options: ["Q10.3, Q75.8", "Q10.3", "Q75.8, Q10.3", "Q18.2"], answer: 0 },
+        { q: "Moderate conscious sedation is bundled in codes listed in:", options: ["Appendix G", "Appendix C", "Section 99143", "Appendix A"], answer: 0 }
+    ];
+
+    function loadQuiz() {
+        const form = document.getElementById('quiz-form');
+        form.innerHTML = questions.map((item, index) => `
+            <div class="question-block">
+                <div class="question-text">${index + 1}. ${item.q}</div>
+                ${item.options.map((opt, i) => `
+                    <label class="option">
+                        <input type="radio" name="q${index}" value="${i}">
+                        ${String.fromCharCode(65 + i)}) ${opt}
+                    </label>
+                `).join('')}
+            </div>
+        `).join('');
+    }
+
+    function submitQuiz() {
+        let correctCount = 0;
+        let wrongHTML = "";
+        const wrongList = document.getElementById('wrong-list');
+        questions.forEach((item, index) => {
+            const selected = document.querySelector(`input[name="q${index}"]:checked`);
+            const val = selected ? parseInt(selected.value) : null;
+            if (val === item.answer) { correctCount++; }
+            else {
+                const userChoice = selected ? String.fromCharCode(65 + val) + ") " + item.options[val] : "No Answer";
+                const correctChoice = String.fromCharCode(65 + item.answer) + ") " + item.options[item.answer];
+                wrongHTML += `<div class="wrong-item"><strong>Q${index + 1}:</strong> ${item.q}<br><span class="label-red">Your Answer:</span> ${userChoice}<br><span class="label-green">Correct Answer:</span> ${correctChoice}</div>`;
+            }
+        });
+        document.getElementById('final-score').innerText = `Final Score: ${correctCount} / ${questions.length}`;
+        document.getElementById('stats').innerHTML = `<p>Correct: ${correctCount} | Wrong: ${questions.length - correctCount}</p>`;
+        if (correctCount < questions.length) {
+            wrongList.innerHTML = wrongHTML;
+            document.getElementById('wrong-answers-container').style.display = 'block';
+        }
+        document.getElementById('result-area').style.display = 'block';
+        document.getElementById('submit-btn').style.display = 'none';
+        document.getElementById('retake-btn').style.display = 'inline-block';
+        window.scrollTo(0, document.body.scrollHeight);
+    }
+
+    function resetQuiz() {
+        document.getElementById('quiz-form').reset();
+        document.getElementById('result-area').style.display = 'none';
+        document.getElementById('wrong-answers-container').style.display = 'none';
+        document.getElementById('submit-btn').style.display = 'inline-block';
+        document.getElementById('retake-btn').style.display = 'none';
+        window.scrollTo(0, 0);
+    }
+    loadQuiz();
+</script>
+</body>
+</html>
